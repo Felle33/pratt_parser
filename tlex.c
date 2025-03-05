@@ -57,9 +57,16 @@ static Token number(Lexer *lexer) {
   return make_token(lexer, TOKEN_NUMBER);
 }
 
+void skip_whitespace(Lexer *lexer) {
+  while(peek(lexer) == ' ') {
+    advance(lexer);
+  }
+}
+
 Token peek_token(Lexer *lexer) {
   lexer->cur = lexer->start;
 
+  skip_whitespace(lexer);
   if (is_at_end(lexer)) return make_token(lexer, TOKEN_EOF);
 
   char c = advance(lexer);

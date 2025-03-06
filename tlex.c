@@ -64,9 +64,12 @@ void skip_whitespace(Lexer *lexer) {
 }
 
 Token peek_token(Lexer *lexer) {
+  // this is used to repeat the same token if multiple peek_token() calls are performed
   lexer->cur = lexer->start;
-
   skip_whitespace(lexer);
+  // this is to skip only 1 time the spaces between tokens and when make_token() the start is at a valid position (not a space)
+  lexer->start = lexer->cur;
+
   if (is_at_end(lexer)) return make_token(lexer, TOKEN_EOF);
 
   char c = advance(lexer);
@@ -79,6 +82,7 @@ Token peek_token(Lexer *lexer) {
   case '+': return make_token(lexer, TOKEN_PLUS);
   case '/': return make_token(lexer, TOKEN_SLASH);
   case '*': return make_token(lexer, TOKEN_STAR);
+  case '!': return make_token(lexer, TOKEN_BANG);
   }
 
   return error_token("Unexpected character.");

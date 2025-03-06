@@ -5,15 +5,17 @@
 
 #include "arena.h"
 #include "tlex.h"
+#include "optional.h"
 
 typedef enum {
   NUM,
   POS,
   NEG,
   SUM,
-  MIN,
+  SUB,
   MUL,
   DIV,
+  FAC,
 } Parse_type;
 
 typedef struct Node Node;
@@ -37,11 +39,17 @@ typedef struct {
   unsigned int s;
 } Pair;
 
+DEFINE_OPTION_TYPE(Pair, Option_pair)
+
 Arena nodes_arena;
 
 bool is_binary_operator(Token_type type) {
   return type == TOKEN_PLUS || type == TOKEN_MINUS || type == TOKEN_STAR
     || type == TOKEN_SLASH;
+}
+
+bool is_postfix_operator(Token_type type) {
+  return type == TOKEN_BANG;
 }
 
 Pair prefix_binding_power(Token_type type) {
@@ -66,28 +74,24 @@ Pair infix_binding_power(Token_type type) {
   }
 }
 
+Option_pair postfix_binding_power(Token_type type) {
+  switch(type) {
+  case TOKEN_BANG: return (Option_pair) {{7, 0}, true};
+  default:         return (Option_pair) {{0, 0}, false};
+  }
+}
+
 Parse_type parse_node_type(Token_type type) {
   switch(type) {
   case TOKEN_NUMBER: return NUM;
   case TOKEN_PLUS:   return SUM;
-  case TOKEN_MINUS:  return MIN;
+  case TOKEN_MINUS:  return SUB;
   case TOKEN_STAR:   return MUL;
   case TOKEN_SLASH:  return DIV;
+  case TOKEN_BANG:   return FAC;
   default:
     fprintf(stderr, "The parse node type function should never reach the default case");
     exit(-1);
-  }
-}
-
-char parse_type_to_char(Parse_type type) {
-  switch(type) {
-  case POS:
-  case SUM: return '+';
-  case NEG:
-  case MIN: return '-';
-  case MUL: return '*';
-  case DIV: return '/';
-  default:  return '?';
   }
 }
 
@@ -117,19 +121,40 @@ Node* expr_bp(Lexer *lexer, unsigned int min_bp) {
     token = peek_token(lexer);
     if (token.type == TOKEN_EOF) {
       break;
-    } else if(!is_binary_operator(token.type)) {
-      fprintf(stderr, "Expected a binary operator instead received a '%s'\n", token.lexeme);
+    } else if(!is_binary_operator(token.type) && !is_postfix_operator(token.type)) {
+      fprintf(stderr, "Expected a binary operator instead received a '%.*s'\n", (int)token.len, token.lexeme);
       exit(-1);
     }
 
     Token_type token_type = token.type;
-    Pair bp = infix_binding_power(token_type);
+    Option_pair opt = postfix_binding_power(token_type);
+    Pair bp;
+    Node *p;
+    
+    if(opt.has_value) {
+      bp = opt.value;
+      if (bp.f < min_bp) {
+	break;
+      }
 
-    if (bp.f < min_bp) break;
+      next_token(lexer);
+      p = arena_alloc(&nodes_arena, sizeof(Node));
+      p->type = parse_node_type(token_type);
+      p->operand = lhs;
+      lhs = p;
+      
+      continue;
+    }
+    
+    bp = infix_binding_power(token_type);
+
+    if (bp.f < min_bp) {
+      break;
+    }
+    
     next_token(lexer);
-
     Node *rhs = expr_bp(lexer, bp.s);
-    Node *p = arena_alloc(&nodes_arena, sizeof(Node));
+    p = arena_alloc(&nodes_arena, sizeof(Node));
     p->type = parse_node_type(token_type);
     p->chldr.lhs = lhs;
     p->chldr.rhs = rhs;
@@ -140,6 +165,19 @@ Node* expr_bp(Lexer *lexer, unsigned int min_bp) {
   return lhs;
 }
 
+char parse_type_to_char(Parse_type type) {
+  switch(type) {
+  case POS:
+  case SUM: return '+';
+  case NEG:
+  case SUB: return '-';
+  case MUL: return '*';
+  case DIV: return '/';
+  case FAC: return '!';
+  default:  return '?';
+  }
+}
+
 void print_tree(const Node* node) {
   if(node->type == NUM) {
     printf("%ld", node->num);
@@ -148,7 +186,7 @@ void print_tree(const Node* node) {
 
   printf("(%c ", parse_type_to_char(node->type));
 
-  if(node->type == POS || node->type == NEG) {
+  if(node->type == POS || node->type == NEG || node->type == FAC) {
     print_tree(node->operand);
     printf(")");
     return;
@@ -163,10 +201,11 @@ void print_tree(const Node* node) {
 int main(void) {
   Lexer lexer;
   arena_init(&nodes_arena);
-  lexer_init(&lexer, "-24 + 12 * 43 - 143 / 3");
+  lexer_init(&lexer, "1 + 2 * 4! - 3     +5");
 
   Node* result = expr_bp(&lexer, 0);
   print_tree(result);
+  printf("\n");
 
   arena_free(&nodes_arena);
   return 0;

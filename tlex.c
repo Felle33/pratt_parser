@@ -77,12 +77,16 @@ Token peek_token(Lexer *lexer) {
 
   switch (c) {
   case '(': return make_token(lexer, TOKEN_LEFT_PAR);
-  case ')': return make_token(lexer, TOKEN_RIGHT_PAR);
+  case ')': return make_token(lexer, TOKEN_RIGHT_PAR); 
+  case '[': return make_token(lexer, TOKEN_LEFT_SQUARE);
+  case ']': return make_token(lexer, TOKEN_RIGHT_SQUARE);
   case '-': return make_token(lexer, TOKEN_MINUS);
   case '+': return make_token(lexer, TOKEN_PLUS);
   case '/': return make_token(lexer, TOKEN_SLASH);
   case '*': return make_token(lexer, TOKEN_STAR);
   case '!': return make_token(lexer, TOKEN_BANG);
+  case '?': return make_token(lexer, TOKEN_QUESTION_MARK);
+  case ':': return make_token(lexer, TOKEN_COLUMN);
   }
 
   return error_token("Unexpected character.");

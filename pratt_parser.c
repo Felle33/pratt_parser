@@ -1,5 +1,4 @@
 //TODO: ADD A BETTER ERROR HANDLING
-//TODO: RUN THE EXPRESSIONS
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -59,10 +58,6 @@ Arena nodes_arena;
 bool is_binary_operator(Token_type type) {
   return type == TOKEN_PLUS || type == TOKEN_MINUS || type == TOKEN_STAR
     || type == TOKEN_SLASH;
-}
-
-bool is_postfix_operator(Token_type type) {
-  return type == TOKEN_BANG;
 }
 
 Pair prefix_binding_power(Token_type type) {
@@ -289,6 +284,27 @@ char* read_file_expr(char *file_name) {
   return chars.items;
 }
 
+long fact(long num) {
+  if(num == 1) return 1;
+  return num * fact(num - 1);
+}
+
+long interpret_expr(Node *root) {
+  switch(root->type) {
+  case NUM: return root->num;
+  case POS: return interpret_expr(root->operand);
+  case NEG: return -interpret_expr(root->operand);
+  case SUM: return interpret_expr(root->chldr.lhs) + interpret_expr(root->chldr.rhs);
+  case SUB: return interpret_expr(root->chldr.lhs) - interpret_expr(root->chldr.rhs);
+  case MUL: return interpret_expr(root->chldr.lhs) * interpret_expr(root->chldr.rhs);
+  case DIV: return interpret_expr(root->chldr.lhs) / interpret_expr(root->chldr.rhs);
+  case FAC: return fact(interpret_expr(root->operand));
+  default:
+    fprintf(stderr, "Error during the interpretation\n");
+    exit(-1);
+  }
+}
+
 int main(int argc, char **argv) {
   shift(argc, argv);
   
@@ -309,7 +325,7 @@ int main(int argc, char **argv) {
 
   for(size_t i = 0; i < da_exprs.count; i++) {
     print_tree(da_exprs.items[i]);
-    printf("\n");
+    printf(" = %ld\n", interpret_expr(da_exprs.items[i]));
   }
 
   free(expr_str);

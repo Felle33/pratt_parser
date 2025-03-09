@@ -1,8 +1,7 @@
 CC:=gcc
 CFLAGS:=-Wall -Werror -Wextra -ggdb
-SRC:=pratt_parser.c arena.c tlex.c
-HEADERS:=arena.h tlex.h
+SRC:=pratt_parser.c src/arena.c src/tlex.c
 TARGET:=pratt_parser
 
 $(TARGET): $(SRC) $(HEADERS)
-	$(CC) $(CFLAGS) $(SRC) $(HEADERS) -o build/$(TARGET)
+	$(CC) $(CFLAGS) $(SRC) -I./include -o build/$(TARGET)

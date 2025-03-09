@@ -7,7 +7,7 @@
 
 #include "arena.h"
 #include "tlex.h"
-#include "optional.h"
+#include "option.h"
 #include "da.h"
 
 typedef enum {

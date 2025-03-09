@@ -15,6 +15,7 @@ typedef enum {
   TOKEN_RIGHT_SQUARE,
   TOKEN_QUESTION_MARK,
   TOKEN_COLUMN,
+  TOKEN_SEMICOLUMN,
   TOKEN_HASHTAG,
   TOKEN_NUMBER,
   TOKEN_EOF,
@@ -35,5 +36,6 @@ typedef struct {
 void lexer_init(Lexer *lexer, char *text);
 Token next_token(Lexer *lexer);
 Token peek_token(Lexer *lexer);
+void expect(Lexer *lexer, Token_type);
 
 #endif // TLEX

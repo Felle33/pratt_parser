@@ -1,3 +1,5 @@
+//TODO: ADD A BETTER ERROR HANDLING
+//TODO: RUN THE EXPRESSIONS
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -6,6 +8,7 @@
 #include "arena.h"
 #include "tlex.h"
 #include "optional.h"
+#include "da.h"
 
 typedef enum {
   NUM,
@@ -42,6 +45,13 @@ typedef struct {
   unsigned int s;
 } Pair;
 
+typedef struct {
+  Node **items;
+  size_t count;
+  size_t capacity;
+} Da_exprs;
+
+#define shift(xs_sz, xs) (assert(xs_sz > 0), xs_sz--, *xs++)
 DEFINE_OPTION_TYPE(Pair, Option_pair)
 
 Arena nodes_arena;
@@ -198,7 +208,6 @@ Node* expr_bp(Lexer *lexer, unsigned int min_bp) {
       }
 
       lhs = p;
-
       continue;
     }
     
@@ -206,6 +215,20 @@ Node* expr_bp(Lexer *lexer, unsigned int min_bp) {
   }
 
   return lhs;
+}
+
+Da_exprs parse_exprs(Lexer *lexer) {
+  Da_exprs exprs = {0};
+
+  Node *expr = expr_bp(lexer, 0);
+  while(expr != NULL) {
+    DA_INSERT(&exprs, expr);
+    expect(lexer, TOKEN_SEMICOLUMN);
+    if(peek_token(lexer).type == TOKEN_EOF) break;
+    expr = expr_bp(lexer, 0);
+  }
+  
+  return exprs;
 }
 
 char parse_type_to_char(Parse_type type) {
@@ -244,16 +267,53 @@ void print_tree(const Node* node) {
   printf(")");
 }
 
-int main(void) {
+char* read_file_expr(char *file_name) {
+  Da_chars chars = {0};
+  size_t idx_next_char = 0;
+  FILE *file = fopen(file_name, "r");
+
+  if (file == NULL) {
+    fprintf(stderr, "Impossible to open the file \"%s\": ", file_name);
+    perror(NULL);
+    exit(-1);
+  }
+
+  char c;
+  while((c = fgetc(file)) != EOF) {
+    DA_INSERT(&chars, c);
+    idx_next_char += 1;
+  }
+  chars.items[idx_next_char] = '\0';
+
+  fclose(file);
+  return chars.items;
+}
+
+int main(int argc, char **argv) {
+  shift(argc, argv);
+  
+  if(argc < 1) {
+    fprintf(stderr, "Not enough arguments\n");
+    exit(-1);
+  }
+
+  char *file_name = shift(argc, argv);
+  char *expr_str = read_file_expr(file_name);
+  //  printf("String to parse: %s\n", expr);
+  
   Lexer lexer;
   arena_init(&nodes_arena);
-  //  lexer_init(&lexer, "100[1 + 2 - 3][10 * 4 - 2!]");
-  lexer_init(&lexer, "10 ? 5 + 2 : 3 * 6");
+  lexer_init(&lexer, expr_str);
 
-  Node* result = expr_bp(&lexer, 0);
-  print_tree(result);
-  printf("\n");
+  Da_exprs da_exprs = parse_exprs(&lexer);
 
+  for(size_t i = 0; i < da_exprs.count; i++) {
+    print_tree(da_exprs.items[i]);
+    printf("\n");
+  }
+
+  free(expr_str);
+  DA_FREE(&da_exprs);
   arena_free(&nodes_arena);
   return 0;
 }

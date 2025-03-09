@@ -58,7 +58,7 @@ static Token number(Lexer *lexer) {
 }
 
 void skip_whitespace(Lexer *lexer) {
-  while(peek(lexer) == ' ') {
+  while(peek(lexer) == ' ' || peek(lexer) == '\n') {
     advance(lexer);
   }
 }
@@ -87,6 +87,7 @@ Token peek_token(Lexer *lexer) {
   case '!': return make_token(lexer, TOKEN_BANG);
   case '?': return make_token(lexer, TOKEN_QUESTION_MARK);
   case ':': return make_token(lexer, TOKEN_COLUMN);
+  case ';': return make_token(lexer, TOKEN_SEMICOLUMN);
   }
 
   return error_token("Unexpected character.");
@@ -96,4 +97,13 @@ Token next_token(Lexer *lexer) {
   Token token = peek_token(lexer);
   lexer->start = lexer->cur;
   return token;
+}
+
+void expect(Lexer *lexer, Token_type type) {
+  Token token = next_token(lexer);
+  if(token.type != type) {
+    // NEED A REVERSE MAP
+    //    fprintf(stderr, "Expected a
+    exit(-1);
+  }
 }
